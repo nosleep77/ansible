@@ -1,0 +1,243 @@
+Pass varilable to playbook on command line
+ansible-playbook release.yml --extra-vars "version=1.23.45 other_variable=foo"
+
+Reboot a remote system using root account without keys
+ubuntu@jumpbox1:~$ ansible test -a "/sbin/reboot" -f 10 -u root --ask-pass
+
+HOST RANGES
+[webservers]
+www[01:50].example.com
+[databases]
+db-[a:f].example.com
+
+CONNECTION TYPE PER HOST
+[targets]
+localhost              ansible_connection=local
+other1.example.com     ansible_connection=ssh        ansible_ssh_user=mpdehaan
+other2.example.com     ansible_connection=ssh        ansible_ssh_user=mdehaan
+
+ASSIGN VARIABLES LATER USED IN PLAYBOOKS
+[atlanta]
+host1 http_port=80 maxRequestsPerChild=808
+host2 http_port=303 maxRequestsPerChild=909
+
+GROUPS OF GROUPS
+[atlanta]
+host1
+host2
+[raleigh]
+host2
+host3
+[southeast:children]
+atlanta
+raleigh
+[southeast:vars]
+some_server=foo.southeast.example.com
+halon_system_timeout=30
+self_destruct_countdown=60
+escape_pods=2
+
+
+
+If the host is named ‘foosball’, and in groups ‘raleigh’ and ‘webservers’, variables in YAML files at the following locations will be made available to the host:
+/etc/ansible/group_vars/raleigh
+/etc/ansible/group_vars/webservers
+/etc/ansible/host_vars/foosball
+
+
+For instance, suppose you have hosts grouped by datacenter, and each datacenter uses some different servers. The data in the groupfile ‘/etc/ansible/group_vars/raleigh’ for the ‘raleigh’ group might look like:
+---
+ntp_server: acme.example.org
+database_server: storage.example.org
+
+
+As an advanced use-case, you can create directories named after your groups or hosts, and Ansible will read all the files in these directories. An example with the ‘raleigh’ group:
+/etc/ansible/group_vars/raleigh/db_settings
+/etc/ansible/group_vars/raleigh/cluster_settings
+
+
+
+
+As alluded to above, setting the following variables controls how ansible interacts with remote hosts. Some we have already mentioned:
+
+ansible_ssh_host
+ The name of the host to connect to, if different from the alias you wish to give to it.
+
+ansible_ssh_port
+ The ssh port number, if not 22
+
+ansible_ssh_user
+ The default ssh user name to use.
+
+ansible_ssh_pass
+ The ssh password to use (this is insecure, we strongly recommend using --ask-pass or SSH keys)
+
+ansible_sudo_pass
+ The sudo password to use (this is insecure, we strongly recommend using --ask-sudo-pass)
+
+ansible_sudo_exe (new in version 1.8)
+ The sudo command path.
+
+ansible_connection
+ Connection type of the host. Candidates are local, ssh or paramiko.  The default is paramiko before Ansible 1.2, and 'smart' afterwards which detects whether usage of 'ssh' would be feasible based on whether ControlPersist is supported.
+
+ansible_ssh_private_key_file
+ Private key file used by ssh.  Useful if using multiple keys and you don't want to use SSH agent.
+
+ansible_shell_type
+ The shell type of the target system. By default commands are formatted using 'sh'-style syntax by default. Setting this to 'csh' or 'fish' will cause commands executed on target systems to follow those shell's syntax instead.
+
+ansible_python_interpreter
+ The target host python path. This is useful for systems with more
+ than one Python or not located at "/usr/bin/python" such as \*BSD, or where /usr/bin/python
+ is not a 2.X series Python.  We do not use the "/usr/bin/env" mechanism as that requires the remote user's
+ path to be set right and also assumes the "python" executable is named python, where the executable might
+ be named something like "python26".
+
+ansible\_\*\_interpreter
+ Works for anything such as ruby or perl and works just like ansible_python_interpreter.
+ This replaces shebang of modules which will run on that host.
+
+
+Examples from a host file:
+some_host         ansible_ssh_port=2222     ansible_ssh_user=manager
+aws_host          ansible_ssh_private_key_file=/home/example/.ssh/aws.pem
+freebsd_host      ansible_python_interpreter=/usr/local/bin/python
+ruby_module_host  ansible_ruby_interpreter=/usr/bin/ruby.1.9.3
+
+
+
+# file: /srv/motd.j2
+Welcome, I am templated with a value of a={{ a }}, b={{ b }}, and c={{ c }}
+Which could be executed just like this:
+ansible webserver -m setup
+ansible webserver -m template -a "src=/tmp/motd.j2 dest=/etc/motd"
+
+So, with the template above (motd.j2), this would result in the following data being written to /etc/motd for system ‘foo’:
+Welcome, I am templated with a value of a=2, b=3, and c=4
+
+
+PATTERNS
+ansible <pattern_goes_here> -m <module_name> -a <arguments>
+ansible webservers -m service -a "name=httpd state=restarted"
+The following patterns are equivalent and target all hosts in the inventory:
+all
+*
+It is also possible to address a specific host or set of hosts by name:
+one.example.com
+one.example.com:two.example.com
+192.168.1.50
+192.168.1.*
+
+The following patterns address one or more groups. Groups separated by a colon indicate an “OR” configuration. This means the host may be in either one group or the other:
+webservers
+webservers:dbservers
+
+You can also specify the intersection of two groups. This would mean the hosts must be in the group webservers and the host must also be in the group staging:
+webservers:&staging
+
+
+
+You can do combinations:
+webservers:dbservers:&staging:!phoenix
+The above configuration means “all machines in the groups ‘webservers’ and ‘dbservers’ are to be managed if they are in the group ‘staging’ also, but the machines are not to be managed if they are in the group ‘phoenix’ ... whew!
+
+You can also use variables if you want to pass some group specifiers via the “-e” argument to ansible-playbook, but this is uncommonly used:
+webservers:!{{excluded}}:&{{required}}
+
+
+You also don’t have to manage by strictly defined groups. Individual host names, IPs and groups, can also be referenced using wildcards:
+*.example.com
+*.com
+
+
+It’s also ok to mix wildcard patterns and groups at the same time:
+one*.com:dbservers
+
+
+As an advanced usage, you can also select the numbered server in a group:
+webservers[0]
+
+Or a portion of servers in a group:
+webservers[0:25]
+
+
+Most people don’t specify patterns as regular expressions, but you can. Just start the pattern with a ‘~’:
+~(web|db).*\.example\.com
+
+
+While we’re jumping a bit ahead, additionally, you can add an exclusion criteria just by supplying the --limit flag to /usr/bin/ansible or /usr/bin/ansible-playbook:
+ansible-playbook site.yml --limit datacenter2
+
+And if you want to read the list of hosts from a file, prefix the file name with ‘@’. Since Ansible 1.2:
+ansible-playbook site.yml --limit @retry_hosts.txt
+
+
+/usr/bin/ansible will default to running from your user account. If you do not like this behavior, pass in “-u username”. If you want to run commands as a different user, it looks like this:
+$ ansible atlanta -a "/usr/bin/foo" -u username
+
+
+Often you’ll not want to just do things from your user account. If you want to run commands through sudo:
+$ ansible atlanta -a "/usr/bin/foo" -u username --sudo [--ask-sudo-pass]
+
+
+Use --ask-sudo-pass (-K) if you are not using passwordless sudo. This will interactively prompt you for the password to use. Use of passwordless sudo makes things easier to automate, but it’s not required.
+It is also possible to sudo to a user other than root using --sudo-user (-U):
+$ ansible atlanta -a "/usr/bin/foo" -u username -U otheruser [--ask-sudo-pass]
+
+
+
+
+FILE TRANSFER
+To transfer a file directly to many servers:
+$ ansible atlanta -m copy -a "src=/etc/hosts dest=/tmp/hosts"
+
+
+The file module allows changing ownership and permissions on files. These same options can be passed directly to the copy module as well:
+$ ansible webservers -m file -a "dest=/srv/foo/a.txt mode=600"
+$ ansible webservers -m file -a "dest=/srv/foo/b.txt mode=600 owner=mdehaan group=mdehaan"
+
+The file module can also create directories, similar to mkdir -p:
+$ ansible webservers -m file -a "dest=/path/to/c mode=755 owner=mdehaan group=mdehaan state=directory"
+
+As well as delete directories (recursively) and delete files:
+$ ansible webservers -m file -a "dest=/path/to/c state=absent"
+
+MANAGING PACKAGES
+Ensure a package is installed, but don’t update it:
+$ ansible webservers -m yum -a "name=acme state=present"
+
+Ensure a package is installed to a specific version:
+$ ansible webservers -m yum -a "name=acme-1.5 state=present"
+Ensure a package is at the latest version:
+$ ansible webservers -m yum -a "name=acme state=latest"
+Ensure a package is not installed:
+$ ansible webservers -m yum -a "name=acme state=absent"
+
+
+Deploy your webapp straight from git:
+$ ansible webservers -m git -a "repo=git://foo.example.org/repo.git dest=/srv/myapp version=HEAD"
+
+
+MANAGING SERVICES
+Ensure a service is started on all webservers:
+$ ansible webservers -m service -a "name=httpd state=started"
+Alternatively, restart a service on all webservers:
+$ ansible webservers -m service -a "name=httpd state=restarted"
+Ensure a service is stopped:
+$ ansible webservers -m service -a "name=httpd state=stopped"
+
+
+BACKGROUND OPERATIONS
+Long running operations can be backgrounded, and their status can be checked on later. The same job ID is given to the same task on all hosts, so you won’t lose track. If you kick hosts and don’t want to poll, it looks like this:
+$ ansible all -B 3600 -a "/usr/bin/long_running_operation --do-stuff"
+If you do decide you want to check on the job status later, you can:
+$ ansible all -m async_status -a "jid=123456789"
+Polling is built-in and looks like this:
+$ ansible all -B 1800 -P 60 -a "/usr/bin/long_running_operation --do-stuff"
+
+
+TO SEE ALL FACTS
+$ ansible all -m setup
+
+
