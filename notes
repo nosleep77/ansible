@@ -1,0 +1,65 @@
+# env vars
+lookup('env', 'OS_PASSWORD') 
+
+Built in facts
+Welcome to host {{ansible_hostname}}!
+https://serverfault.com/questions/667927/how-do-i-print-the-current-hostname-of-a-host-in-ansible
+
+
+# cheat sheet
+https://www.digitalocean.com/community/tutorials/how-to-use-ansible-cheat-sheet-guide
+
+# install a set of packages
+- name: install a set of packages
+  yum: name={{ item }} state=present
+  with_items:
+    - httpd
+    - php
+    - git
+    - mysql-client
+
+# files and templates
+- name: copy a file
+  copy: src=files/ntp.conf dest=/etc/ntp/ntp.conf
+  owner=root group=root mode=0644
+
+- name: copy ansible inventory file to client
+  template: src=templates/motd
+                  dest=/etc/motd
+                  owner=root group=root mode=0644
+                  
+
+# file: /srv/motd.j2
+Welcome, I am templated with a value of a={{ a }}, b={{ b }}, and c={{ c }}
+Which could be executed just like this:
+
+ansible webserver -m setup
+ansible webserver -m template -a "src=/tmp/motd.j2 dest=/etc/motd"
+
+So, with the template above (motd.j2), this would result in the following data being 
+written to /etc/motd for system ‘foo’:
+ 
+Welcome, I am templated with a value of a=2, b=3, and c=4
+
+
+
+# simple playbook
+---
+- name: install and start apache
+     hosts: webservers
+     user: root
+
+ tasks:
+ - name: install httpd
+    yum: name=httpd state=present
+
+ - name: write the apache config file
+    template: src=templates/httpd.j2 dest=/etc/httpd/httpd.conf
+    notify:
+    - restart apache
+
+ - name: start httpd
+    service: name=httpd state=running
+
+
+
