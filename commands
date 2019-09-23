@@ -1,0 +1,46 @@
+
+By default will get hosts/groups from /etc/ansible/hosts
+
+ansible appgroup -m setup
+
+ansible all -m ping
+
+-o will output all on same line
+ansible all -m ping -o
+
+Execute a command
+
+Now to run the command on all servers in a group, in this case, atlanta, in 10 parallel forks:
+$ ansible atlanta -a "/sbin/reboot" -f 10
+
+/usr/bin/ansible will default to running from your user account. If you do not like this behavior, pass in “-u username”. If you want to run commands as a different user, it looks like this:
+$ ansible atlanta -a "/usr/bin/foo" -u username
+
+
+-v for verbose
+ansible all -m ping -o -v
+
+Install package
+ansible appgroup -m yum -a "name=httpd state=present"
+
+-s use sudo
+ansible appgroup -m yum -a "name=httpd state=present" -s
+
+Service module
+ansible appgroup -m service -a "name=httpd state=started" -s
+
+Copy file
+ansible all -m copy -a "src=/tmp/testfile dest=/tmp/testfile2" -s
+
+
+ansible-playbook -i ../inventory/vfdb9904vhosts site.yml --extra-vars "vnf_instance=vfdb9904v"
+
+
+Save task output variable
+
+register: rds
+
+From <https://serverfault.com/questions/904200/ansible-task-output-redirection-to-the-next-task-as-input> 
+
+
+
