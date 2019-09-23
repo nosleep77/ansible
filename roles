@@ -1,0 +1,52 @@
+
+https://docs.ansible.com/ansible/latest/user_guide/playbooks_reuse_roles.html
+
+To generate a role
+ansible-galaxy init <role name>
+
+As noted in Creating Reusable Playbooks, include and import statements are very similar, however the Ansible executor engine treats them very differently.
+• All import* statements are pre-processed at the time playbooks are parsed.
+• All include* statements are processed as they are encountered during the execution of the playbook.
+
+
+
+roleName/
+|- defaults
+ |--- main.yml
+|- files
+|- handlers
+ |--- main.yml
+|- meta
+ |--- main.yml
+|- tasks
+ |--- main.yml
+|- templates
+|- tests
+ |--- inventory
+ |--- test.yml
+|- vars
+ |--- main.yml
+|- README.md
+
+
+
+Example project structure
+
+site.yml
+webservers.yml
+fooservers.yml
+roles/
+   common/
+     tasks/
+     handlers/
+     files/
+     templates/
+     vars/
+     defaults/
+     meta/
+   webservers/
+     tasks/
+     defaults/
+     meta/
+     
+
