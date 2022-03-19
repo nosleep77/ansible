@@ -1,0 +1,17 @@
+# to run: ansible-playbook sampleplaybook.yml -i ansible_hosts
+# dry run: ansible-playbook -C sampleplaybook.yml -i ansible_hosts
+# syntax check: ansible-playbook --syntax-check sampleplaybook.yml -i ansible_hosts
+---
+  - name: Playbook
+    hosts: webservers
+    become: yes
+    become_user: root
+    tasks:
+      - name: ensure apache is at the latest version
+        apt:
+          name: apache2
+          state: latest
+      - name: ensure apache is running
+        service:
+          name: apache2
+          state: started
