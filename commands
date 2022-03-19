@@ -30,8 +30,9 @@ Service module
 ansible appgroup -m service -a "name=httpd state=started" -s
 
 Copy file
-ansible all -m copy -a "src=/tmp/testfile dest=/tmp/testfile2" -s
-
+echo "random stuff" >> /tmp/file1
+ansible localhost -m copy -a "src=/tmp/file1 dest=/tmp/file2" -s
+ansible localhost -m copy -a "src=~/Downloads/index.html dest=/var/www/html owner=apache group=apache mode=0644"
 
 ansible-playbook -i ../inventory/vfdb9904vhosts site.yml --extra-vars "vnf_instance=vfdb9904v"
 
